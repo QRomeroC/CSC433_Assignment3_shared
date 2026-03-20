@@ -485,14 +485,10 @@ function renderObj(now){
 	
 	//Todo: Here you can activate and bind any attribute you need in shader.
     // Turn on the position attribute
-    //gl.enableVertexAttribArray(objProgram.positionLocationAttrib);
-	//turn on normal attribute in place of position
-	gl.enableVertexAttribArray(objProgram.positionLocationAttrib);
-    
-	// Bind the position buffer.
-    //gl.bindBuffer(gl.ARRAY_BUFFER, currentScene.obj.positionBuffer);
-	//bind normal buffer in place of position
-	gl.bindBuffer(gl.ARRAY_BUFFER, currentScene.obj.positionBuffer);
+    gl.enableVertexAttribArray(objProgram.positionLocationAttrib);
+
+    // Bind the position buffer.
+    gl.bindBuffer(gl.ARRAY_BUFFER, currentScene.obj.positionBuffer);
 	
 	// Tell the position attribute how to get data out of positionBuffer (ARRAY_BUFFER)
     var size = 3;          // 3 components per iteration
@@ -501,35 +497,9 @@ function renderObj(now){
     var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
     var offset = 0;        // start at the beginning of the buffer
     gl.vertexAttribPointer(
-        objProgram.positionLocationAttrib, 
-		size, 
-		type, 
-		normalize, 
-		stride, 
-		offset
-	);
+        objProgram.positionLocationAttrib, size, type, normalize, stride, offset);
 	
-	//turn on normal attribute
-	gl.enableVertexAttribArray(objProgram.normalLocationAttrib);
-	//bind normal buffer
-	gl.bindBuffer(gl.ARRAY_BUFFER, currentScene.obj.normalBuffer);
-	
-	//same pos attribute as from above.
-	var size = 3;          // 3 components per iteration
-    var type = gl.FLOAT;   // the data is 32bit floats
-    var normalize = false; // don't normalize the data
-    var stride = 0;        // 0 = move forward size * sizeof(type) each iteration to get the next position
-    var offset = 0; 
-	gl.vertexAttribPointer(
-		objProgram.normalLocationAttrib,
-		size,
-		type,
-		normalize,
-		stride,
-		offset
-	);
-	
-	
+
     // Compute the projection matrix
     var aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
     var projectionMatrix =
@@ -551,9 +521,6 @@ function renderObj(now){
 	m4.yRotate(modelMatrix,modelRotationRadians,modelMatrix);
 	
 	var worldViewProjectionMatrix = m4.multiply(viewProjectionMatrix, modelMatrix);
-	var worldInverseMatrix = m4.inverse(modelMatrix);
-	var worldInverseTransposeMatrix = m4.transpose(worldInverseMatrix);
-	
 	
 	gl.uniformMatrix4fv(objProgram.worldUniformLocation, false, modelMatrix);
 
@@ -561,34 +528,8 @@ function renderObj(now){
     // Set the viewProjectionMatrix.
 	gl.uniformMatrix4fv(objProgram.worldViewProjectionUniformLocation, false, worldViewProjectionMatrix);
 	
-	gl.uniformMatrix4fv(objProgram.worldInverseTransposeUniformLocation,false,worldInverseTransposeMatrix);
-	
 	// Set the fixed color
-	//gl.uniform3fv(objProgram.colorUniformLocation, new Float32Array([1.0,0.1,0.1]));
-	//not fixed now get from light and camera 
-	gl.uniform3fv(
-		objProgram.lightWorldPositionUniformLocation,
-		new Float32Array([
-			currentScene.light.locationPoint.x,
-			currentScene.light.locationPoint.y,
-			currentScene.light.locationPoint.z,
-		])
-	);
-	
-	gl.uniform3fv(
-		objProgram.viewWorldPositionUniformLocation,
-		new Float32Array([
-			currentScene.camera.position.x,
-			currentScene.camera.position.y,
-			currentScene.camera.position.z
-		])
-	);	
-	
-	gl.uniform1f(objProgram.phongExpUniformLocation, phongExp);
-	//0.0 = diffuse
-	//1.0 = Gouraud
-	//2.0 = phong
-	gl.uniform1f(objProgram.shadingModeUniformLocation, 0.0);
+	gl.uniform3fv(objProgram.colorUniformLocation, new Float32Array([1.0,0.1,0.1]));
 	
 	// Here we can access the uniforms in an inefficient way i.e. instead of getting the uniform addresses and store them in a class, we can get the uniform location
 	// and send the data. Since, we are sending 3 float variables (one is treated as a boolean), it doesn't have impact on performance.
@@ -673,52 +614,16 @@ function makeObjBuffers(){
 
 function programObj(){
 	//Todo: Change the shader programs to support diffuse and specular (graduates) shading. For gouraud shading you need to calculate new normals when processing the OBJ file.
-	var vShaderObj =
-				"precision mediump float;\n"+
-				"attribute vec4 a_position;\n"+
-				"attribute vec3 a_normal;\n"+
+	var vShaderObj = "attribute vec4 a_position;\n"+
 				"uniform mat4 u_worldViewProjection;\n"+
 				"uniform mat4 u_world;\n"+
-				"uniform mat4 u_worldInverseTranspose;\n"+
-				"uniform vec3 u_lightWorldPosition;\n"+
-				"uniform vec3 u_viewWorldPosition;\n"+
-				"uniform vec3 u_color;\n"+
-				"uniform float u_phongExp;\n"+
-				"uniform float u_shadingMode;\n"+
-				"varying vec3 v_worldPosition;\n"+
-				"varying vec3 v_normal;\n"+
-				"varying vec3 v_gouraudColor;\n"+
 				"void main() {\n"+
 					"// Multiply the position by the matrix.\n"+
 					"gl_Position = u_worldViewProjection * a_position;\n"+
-					"vec4 worldPosition = u_world * a_position;\n"+
-					"v_worldPosition = worldPosition.xyz;\n"+
-					"v_normal = mat3(u_worldInverseTranspose) * a_normal;\n"+
-					//-----Gouraud/Phong-----
-					"vec3 normal = normalize(v_normal);\n"+
-					"vec3 lightDir = normalize(u_lightWorldPosition - worldPosition.xyz);\n"+
-					"float diffuse = max(dot(normal,lightDir),0.0);\n"+
-					"vec3 baseColor = u_color * diffuse;\n"+
-					"vec3 viewDir = normalize(u_viewWorldPosition - worldPosition.xyz);\n"+
-					"vec3 halfVector = normalize(lightDir + viewDir);\n"+
-					"float specular = 0.0;\n"+
-					"if(diffuse > 0.0){\n"+
-						//L_s = k_sImax(0,(n*h)^p)
-					"	specular = pow(max(dot(normal,halfVector),0.0),u_phongExp);\n"+
-					"}\n"+
-					"v_gouraudColor = baseColor + vec3(specular);\n"+
 				"}";
-	
-	var fShaderObj = 	
-					"precision mediump float;\n"+
-					"varying vec3 v_worldPosition;\n"+
+	var fShaderObj = 	"precision mediump float;\n"+
 					"varying vec3 v_normal;\n"+
-					"varying vec3 v_gouraudColor;\n"+
-					"uniform vec3 u_lightWorldPosition;\n"+
-					"uniform vec3 u_viewWorldPosition;\n"+
 					"uniform vec3 u_color;\n"+
-					"uniform float u_phongExp;\n"+
-					"uniform float u_shadingMode;\n"+
 					"uniform float u_isDepthBuffer;\n"+
 					"void main() {\n"+
 						"if(u_isDepthBuffer==1.0){\n"+
@@ -726,43 +631,15 @@ function programObj(){
 							"float ndcZ = 2.0*z - 1.0;  // [-1,1]\n"+
 							"gl_FragColor = vec4(vec3(ndcZ), 1.0);\n"+
 						"}else{\n"+
-							//"gl_FragColor = vec4(u_color,1.0);\n"+
-							//shading mode diffused only
-							"if(u_shadingMode == 0.0){\n"+
-								"vec3 normal = normalize(v_normal);\n"+
-								"vec3 lightDir = normalize(u_lightWorldPosition - v_worldPosition);\n"+
-								"float diffuse = max(dot(normal,lightDir),0.0);\n"+
-								"gl_FragColor = vec4(u_color * diffuse, 1.0);\n"+
-							//gouraud shading
-							"} else if (u_shadingMode == 1.0){\n"+
-								"gl_FragColor = vec4(v_gouraudColor, 1.0);\n"+
-							//phong shading
-							"} else {\n"+
-								"vec3 normal = normalize(v_normal);\n"+
-								"vec3 lightDir = normalize(u_lightWorldPosition - v_worldPosition);\n"+
-								"vec3 viewDir = normalize(u_viewWorldPosition - v_worldPosition);\n"+
-								"vec3 halfVector = normalize(lightDir + viewDir);\n"+
-								"float diffuse = max(dot(normal,lightDir),0.0);\n"+
-								"float specular = 0.0;\n"+
-								"if(diffuse > 0.0){\n"+
-									//L_s = k_sImax(0,(n*h)^p)
-									"specular = pow(max(dot(normal,halfVector),0.0),u_phongExp);\n"+
-								"}\n"+
-								"vec3 finalColor = u_color * diffuse + vec3(specular);\n"+
-								"gl_FragColor = vec4(finalColor, 1.0);\n"+
-							"}\n"+
+							"gl_FragColor = vec4(u_color,1.0);\n"+
 						"}\n"+
 					"}";
-					
 	let programObject = webglUtils.createProgramFromSources(gl, [vShaderObj,fShaderObj])
 	
 	//Todo: Add new varialbes for linking to the shader program.
 	//The attribute variables from the shader program can be obtained as below.
 	// look up where the vertex data needs to go.
     let positionLocationAttrib = gl.getAttribLocation(programObject, "a_position");
-	//location and normal
-	let normalLocationAttrib = gl.getAttribLocation(programObject, "a_normal");
-	
 	
 	//Todo: Add new varialbes for linking to the shader program.
 	//The uniform variables from the shader program can be obtained as below.
@@ -770,46 +647,18 @@ function programObj(){
     let colorUniformLocation = gl.getUniformLocation(programObject, "u_color");
 	let worldViewProjectionUniformLocation = gl.getUniformLocation(programObject, "u_worldViewProjection");
 	let worldUniformLocation = gl.getUniformLocation(programObject, "u_world");
-	let worldInverseTransposeUniformLocation = gl.getUniformLocation(programObject,"u_worldInverseTranspose");
-	let lightWorldPositionUniformLocation = gl.getUniformLocation(programObject,"u_lightWorldPosition");
-	let viewWorldPositionUniformLocation = gl.getUniformLocation(programObject,"u_viewWorldPosition");
-	let phongExpUniformLocation = gl.getUniformLocation(programObject,"u_phongExp");
-	let shadingModeUniformLocation = gl.getUniformLocation(programObject,"u_shadingMode");
-	let isDepthBufferUniformLocation = gl.getUniformLocation(programObject,"u_isDepthBuffer");
 	
 	//Todo: You can store the variable addresses into a class similar to what is shown below so that in the rendering loop you don't get the variables each time.
-	objProgram=new ObjProgram(
-		programObject,
-		positionLocationAttrib,
-		normalLocationAttrib,
-		colorUniformLocation,
-		worldViewProjectionUniformLocation,
-		worldUniformLocation,
-		worldInverseTransposeUniformLocation,
-		lightWorldPositionUniformLocation,
-		viewWorldPositionUniformLocation,
-		phongExpUniformLocation,
-		shadingModeUniformLocation,
-		isDepthBufferUniformLocation
-	);
+	objProgram=new ObjProgram(programObject,positionLocationAttrib,colorUniformLocation,worldViewProjectionUniformLocation,worldUniformLocation);
 }
 
 class ObjProgram{
-	constructor(program,positionLocationAttrib,normalLocationAttrib,colorUniformLocation,worldViewProjectionUniformLocation,worldUniformLocation,
-				worldInverseTransposeUniformLocation, lightWorldPositionUniformLocation, viewWorldPositionUniformLocation, 
-				phongExpUniformLocation, shadingModeUniformLocation, isDepthBufferUniformLocation){
-		this.program = program;
-		this.positionLocationAttrib = positionLocationAttrib;
-		this.normalLocationAttrib = normalLocationAttrib;
-		this.colorUniformLocation = colorUniformLocation;
-		this.worldViewProjectionUniformLocation = worldViewProjectionUniformLocation;
-		this.worldUniformLocation = worldUniformLocation;
-		this.worldInverseTransposeUniformLocation = worldInverseTransposeUniformLocation;
-		this.lightWorldPositionUniformLocation = lightWorldPositionUniformLocation;
-		this.viewWorldPositionUniformLocation = viewWorldPositionUniformLocation;
-		this.phongExpUniformLocation = phongExpUniformLocation;
-		this.shadingModeUniformLocation = shadingModeUniformLocation;
-		this.isDepthBufferUniformLocation = isDepthBufferUniformLocation;
+	constructor(program,positionLocationAttrib,colorUniformLocation,worldViewProjectionUniformLocation,worldUniformLocation){
+		this.program=program;
+		this.positionLocationAttrib=positionLocationAttrib;
+		this.colorUniformLocation=colorUniformLocation;
+		this.worldViewProjectionUniformLocation=worldViewProjectionUniformLocation;
+		this.worldUniformLocation=worldUniformLocation;
 	}
 }
 
@@ -863,13 +712,7 @@ function programBillboard(){
 	let worldViewProjectionUniformLocation = gl.getUniformLocation(programBill, "u_worldViewProjection");
 	
 	//Todo: You can store the variable addresses into a class similar to what is shown below so that in the rendering loop you don't get the variables each time.
-	billboardProgram=new BillboardProgram(
-		programBill,
-		positionLocationAttrib,
-		textureLocationAttrib,
-		textureUniformLocation,
-		worldViewProjectionUniformLocation
-	);
+	billboardProgram=new BillboardProgram(programBill,positionLocationAttrib,textureLocationAttrib,textureUniformLocation,worldViewProjectionUniformLocation);
 }
 
 //The function for parsing PNG is done for you. The output is a an array of RGBA instances.
@@ -917,17 +760,17 @@ function degToRad(d) {
 	return d * Math.PI / 180;
 }
 
-// A utility function to convert a javascript Float32Array to a buffer. This function must be called after the buffer is bound.
+// A utility function to convert a javascript Floar32Array to a buffer. This function must be called after the buffer is bound.
 function setGeometryPositionBuffer(gl,obj) {
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.geometries[0].data.position), gl.STATIC_DRAW);
 }
 
-// A utility function to convert a javascript Float32Array to a buffer. This function must be called after the buffer is bound.
+// A utility function to convert a javascript Floar32Array to a buffer. This function must be called after the buffer is bound.
 function setTextureCoordBuffer(gl,obj) {
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.geometries[0].data.texcoord), gl.STATIC_DRAW);
 }
 
-// A utility function to convert a javascript Float32Array to a buffer. This function must be called after the buffer is bound.
+// A utility function to convert a javascript Floar32Array to a buffer. This function must be called after the buffer is bound.
 function setNormalBuffer(gl,obj) {
 	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(obj.geometries[0].data.normal), gl.STATIC_DRAW);
 }
