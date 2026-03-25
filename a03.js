@@ -1233,6 +1233,7 @@ function buildSmoothNormals(positionData){
 
 }
 */
+/*
 function buildSmoothNormals(positionData) {
 
   //Each vertex has 3 components
@@ -1314,7 +1315,110 @@ function buildSmoothNormals(positionData) {
 
   return Array.from(normalSums);
 }
+ */
+
+function buildSmoothNormals(positionData) {
   
+  //Each vertex has 3 components
+  const vertexCount = positionData.length / 3;
+
+  //This will accumulate summed normals per vertex before normalization
+  const normalSums = new Float32Array(positionData.length);
+  
+  //Map: "x,y,z" to array of ideces in the buffer that share this position
+  //this lets us treat duplicated vertices and the same position.
+  const sharedPositions = new Map();
+
+  //Group vertices by identical position
+  for (let i = 0; i < vertexCount; ++i) {
+    const base = i * 3;
+    const key = positionData[base] + "," + positionData[base + 1] + "," + positionData[base + 2];
+    let shared = sharedPositions.get(key);
+    if (!shared) {
+      shared = [];
+      sharedPositions.set(key, shared);
+    }
+    shared.push(base);
+  }
+
+  //Use the average vertex position as the object center for outward checks
+  let centerX = 0;
+  let centerY = 0;
+  let centerZ = 0;
+  for (let i = 0; i < vertexCount; ++i) {
+    const base = i * 3;
+    centerX += positionData[base];
+    centerY += positionData[base + 1];
+    centerZ += positionData[base + 2];
+  }
+  const objectCenter = new Vector3(centerX / vertexCount, centerY / vertexCount, centerZ / vertexCount);
+  
+  //Iterate over each triangle and compute face normals
+  for (let i = 0; i < vertexCount; i += 3) {
+    const base0 = i * 3;
+    const base1 = base0 + 3;
+    const base2 = base0 + 6;
+
+	//extract vertex positions
+    const p0x = positionData[base0];
+    const p0y = positionData[base0 + 1];
+    const p0z = positionData[base0 + 2];
+    // Create Vector3 versions of the triangle's three vertices so the helper math functions can use them.
+    const p1 = new Vector3(p0x, p0y, p0z);
+    const p2 = new Vector3(positionData[base1], positionData[base1 + 1], positionData[base1 + 2]);
+    const p3 = new Vector3(positionData[base2], positionData[base2 + 1], positionData[base2 + 2]);
+	//Compute edge vectors
+    const edge1 = Vector3.minusTwoVectors(p2, p1);
+    const edge2 = Vector3.minusTwoVectors(p3, p1);
+	// Compute face normal via cross product: edge1 X edge2
+    let faceNormal = Vector3.crossProduct(edge1, edge2);
+    // Average the three triangle vertices to get the point at the center of this face.
+    const triangleCenter = new Vector3(
+      (p1.x + p2.x + p3.x) / 3,
+      (p1.y + p2.y + p3.y) / 3,
+      (p1.z + p2.z + p3.z) / 3
+    );
+    // This vector points from the object's center outward toward this triangle.
+    const centerDirection = Vector3.minusTwoVectors(triangleCenter, objectCenter);
+    // If the dot product is negative, the normal points inward, so negate it to flip outward.
+    if (Vector3.dotProduct(faceNormal, centerDirection) < 0) {
+      faceNormal = Vector3.negate(faceNormal);
+    }
+    const nx = faceNormal.x;
+    const ny = faceNormal.y;
+    const nz = faceNormal.z;
+
+	//Add this face normal to All shared vertices 
+    for (let j = 0; j < 3; ++j) {
+      const vertexBase = base0 + j * 3;
+      const key = positionData[vertexBase] + "," + positionData[vertexBase + 1] + "," + positionData[vertexBase + 2];
+      const shared = sharedPositions.get(key);
+
+	  //Add this triangle's norml to each shared vertecx
+      for (let k = 0; k < shared.length; ++k) {
+        const sharedBase = shared[k];
+        normalSums[sharedBase] += nx;
+        normalSums[sharedBase + 1] += ny;
+        normalSums[sharedBase + 2] += nz;
+      }
+    }
+  }
+
+  //Normalize all accumulated normals
+  for (let i = 0; i < vertexCount; ++i) {
+    const base = i * 3;
+    const nx = normalSums[base];
+    const ny = normalSums[base + 1];
+    const nz = normalSums[base + 2];
+    const length = Vector3.distance(new Vector3(0, 0, 0), new Vector3(nx, ny, nz)) || 1;
+    normalSums[base] = nx / length;
+    normalSums[base + 1] = ny / length;
+    normalSums[base + 2] = nz / length;
+  }
+
+  return Array.from(normalSums);
+}
+ 
 //Extra math functions. This can not be used in shader program. GLSL has its own math functions.
 class Vector3{
 	constructor(x,y,z){
