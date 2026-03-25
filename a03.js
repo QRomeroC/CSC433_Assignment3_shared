@@ -778,15 +778,16 @@ function programObj(){
 	//let lightWorldPos = gl.getAttribLocation(programObject, "u_lightWorldPosition");
 	//console.log(shadingModeValue);
 	//console.log(lightWorldPos);
-	let numAttribs = gl.getProgramParameter(programObject, gl.ACTIVE_ATTRIBUTES);
-	let numAttachedShader = gl.getProgramParameter(programObject, gl.ATTACHED_SHADERS);
-	console.log("numAttachedShader: ", numAttachedShader);
-	console.log("numAttribs: ", numAttribs);
+	//let numAttribs = gl.getProgramParameter(programObject, gl.ACTIVE_ATTRIBUTES);
+	//let numAttachedShader = gl.getProgramParameter(programObject, gl.ATTACHED_SHADERS);
+	//console.log("numAttachedShader: ", numAttachedShader);
+	//console.log("numAttribs: ", numAttribs);
+	/*
 	for (let i = 0; i < numAttribs; ++i){
 		const info = gl.getActiveAttrib(programObject, i);
-		console.log("name: ", info.name, "type: ", info.type, "size: ", info.size);
+		//console.log("name: ", info.name, "type: ", info.type, "size: ", info.size);
 	}
-	
+	*/
 	//The attribute variables from the shader program can be obtained as below.
 	// look up where the vertex data needs to go.
     let positionLocationAttrib = gl.getAttribLocation(programObject, "a_position");
