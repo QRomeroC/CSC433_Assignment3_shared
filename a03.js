@@ -603,8 +603,8 @@ function renderObj(now){
 		// Send phong exp uniform
 		gl.uniform1f(isDBUniformLocation, 0);
 	}
-	//console.log(objProgram);
-	//console.log(objProgram.lightWorldPositionUniformLocation);
+	console.log(objProgram);
+	console.log(objProgram.lightWorldPositionUniformLocation);
 	gl.drawArrays(gl.TRIANGLES, 0, currentScene.obj.numVertices);
 }
 
@@ -698,16 +698,20 @@ function programObj(){
 					
 					"vec3 normal = normalize(v_normal);\n"+
 					"vec3 lightDir = normalize(u_lightWorldPosition - worldPosition.xyz);\n"+
+					"float ambientWeight = 0.65;\n"+
+					"float diffuseWeight = 0.55;\n"+
+					"float specularWeight = 0.90;\n"+
 					"float diffuse = max(dot(normal,lightDir),0.0);\n"+
-					"vec3 baseColor = u_color * diffuse;\n"+
+					"vec3 ambient = ambientWeight * u_color;\n"+
+					"vec3 diffusedColor = diffuseWeight * diffuse * u_color;\n"+
 					"vec3 viewDir = normalize(u_viewWorldPosition - worldPosition.xyz);\n"+
 					"vec3 halfVector = normalize(lightDir + viewDir);\n"+
 					"float specular = 0.0;\n"+
 					"if(diffuse > 0.0){\n"+
-						
+					//L_s = K_s*I*(max(dot(h*n)^p,0.0))
 					"	specular = pow(max(dot(normal,halfVector),0.0),u_phongExp);\n"+
 					"}\n"+
-					"v_gouraudColor = baseColor + vec3(specular);\n"+
+					"v_gouraudColor = ambient + diffusedColor + specularWeight * vec3(specular);\n"+
 				"}";
 	
 	var fShaderObj = 	
@@ -742,13 +746,17 @@ function programObj(){
 								"vec3 lightDir = normalize(u_lightWorldPosition - v_worldPosition);\n"+
 								"vec3 viewDir = normalize(u_viewWorldPosition - v_worldPosition);\n"+
 								"vec3 halfVector = normalize(lightDir + viewDir);\n"+
+								"float ambientWeight = 0.65;\n"+
+								"float diffuseWeight = 0.55;\n"+
+								"float specularWeight = 0.90;\n"+
 								"float diffuse = max(dot(normal,lightDir),0.0);\n"+
+								"vec3 ambient = ambientWeight * u_color;\n"+
+								"vec3 diffusedColor = diffuseWeight * diffuse * u_color;\n"+
 								"float specular = 0.0;\n"+
 								"if(diffuse > 0.0){\n"+
-									
 									"specular = pow(max(dot(normal,halfVector),0.0),u_phongExp);\n"+
 								"}\n"+
-								"vec3 finalColor = u_color * diffuse + vec3(specular);\n"+
+								"vec3 finalColor = ambient + diffuse + specularWeight * vec3(specular);\n"+
 								"gl_FragColor = vec4(finalColor, 1.0);\n"+
 							"}\n"+
 						"}\n"+
@@ -1147,7 +1155,7 @@ function parseOBJ(text) {
     materialLibs,
   };
 }
-
+/*
 function buildSmoothNormals(positionData){
 	//Each vertex has 3 components
   const vertexCount = positionData.length / 3;
@@ -1182,6 +1190,7 @@ function buildSmoothNormals(positionData){
     const p0y = positionData[base0 + 1];
     const p0z = positionData[base0 + 2];
 	//Compute edge vectors
+	
     const e1x = positionData[base1] - p0x;
     const e1y = positionData[base1 + 1] - p0y;
     const e1z = positionData[base1 + 2] - p0z;
@@ -1192,6 +1201,7 @@ function buildSmoothNormals(positionData){
     const nx = e1y * e2z - e1z * e2y;
     const ny = e1z * e2x - e1x * e2z;
     const nz = e1x * e2y - e1y * e2x;
+	
 
 	//Add this face normal to All shared vertices 
     for (let j = 0; j < 3; ++j) {
@@ -1224,8 +1234,89 @@ function buildSmoothNormals(positionData){
   return Array.from(normalSums);
 
 }
+*/
+function buildSmoothNormals(positionData) {
 
+  //Each vertex has 3 components
+  const vertexCount = positionData.length / 3;
 
+  //This will accumulate summed normals per vertex before normalization
+  const normalSums = new Float32Array(positionData.length);
+
+  //Map: "x,y,z" to array of ideces in the buffer that share this position
+  //this lets us treat duplicated vertices and the same position.
+  const sharedPositions = new Map();
+
+  //Group vertices by identical position
+  for (let i = 0; i < vertexCount; ++i) {
+    const base = i * 3;
+    const key = positionData[base] + "," + positionData[base + 1] + "," + positionData[base + 2];
+    let shared = sharedPositions.get(key);
+    if (!shared) {
+      shared = [];
+      sharedPositions.set(key, shared);
+    }
+    shared.push(base);
+  }
+  
+  //Iterate over each triangle and compute face normals
+  for (let i = 0; i < vertexCount; i += 3) {
+    const base0 = i * 3;
+    const base1 = base0 + 3;
+    const base2 = base0 + 6;
+
+    //extract vertex positions
+    const p0x = positionData[base0];
+    const p0y = positionData[base0 + 1];
+    const p0z = positionData[base0 + 2];
+    //Compute edge vectors
+    const edge1 = new Vector3(
+      positionData[base1] - p0x,
+      positionData[base1 + 1] - p0y,
+      positionData[base1 + 2] - p0z
+    );
+    const edge2 = new Vector3(
+      positionData[base2] - p0x,
+      positionData[base2 + 1] - p0y,
+      positionData[base2 + 2] - p0z
+    );
+    // Compute face normal via cross product: edge1 X edge2
+    const faceNormal = Vector3.crossProduct(edge1, edge2);
+    const nx = faceNormal.x;
+    const ny = faceNormal.y;
+    const nz = faceNormal.z;
+
+    //Add this face normal to All shared vertices 
+    for (let j = 0; j < 3; ++j) {
+      const vertexBase = base0 + j * 3;
+      const key = positionData[vertexBase] + "," + positionData[vertexBase + 1] + "," + positionData[vertexBase + 2];
+      const shared = sharedPositions.get(key);
+
+      //Add this triangle's norml to each shared vertecx
+      for (let k = 0; k < shared.length; ++k) {
+        const sharedBase = shared[k];
+        normalSums[sharedBase] += nx;
+        normalSums[sharedBase + 1] += ny;
+        normalSums[sharedBase + 2] += nz;
+      }
+    }
+  }
+
+  //Normalize all accumulated normals
+  for (let i = 0; i < vertexCount; ++i) {
+    const base = i * 3;
+    const nx = normalSums[base];
+    const ny = normalSums[base + 1];
+    const nz = normalSums[base + 2];
+    const length = Math.sqrt(nx * nx + ny * ny + nz * nz) || 1;
+    normalSums[base] = nx / length;
+    normalSums[base + 1] = ny / length;
+    normalSums[base + 2] = nz / length;
+  }
+
+  return Array.from(normalSums);
+}
+  
 //Extra math functions. This can not be used in shader program. GLSL has its own math functions.
 class Vector3{
 	constructor(x,y,z){
