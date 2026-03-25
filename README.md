@@ -12,7 +12,10 @@ You need to apply different shadings to the OBJ file.
 ***bugs and functionality**
 Still tackling a bug regarding ambient color and diffusion. Diffusion shading is 
 over saturating and not enough ambient is coming through, adjusting our color composition
-to have more ambient and less diffusion. 
+to have more ambient and less diffusion. <-- corrected
+ --- updated composite color ---
+ we are not defining our final color as ambientWeight * u_color + diffusedWeight * diffused + specularWeight * specular; 
+ this corrects for the bug where diffused shading was over powering ambient.
 
 Included files (**PLEASE ADD/UPDATE THIS LIST**):
 * materials/ -- a folder with different obj files, one texture, and one scene

@@ -193,13 +193,13 @@ function readScene()//This is the function that is called after user selects mul
 					{
 						var file_data = this.result;
 						objParsed=parseOBJ(file_data);//Parse obj to almost buffer-ready Float32Array arrays.
-						//Todo: For gouraud shading you may need to edit the normals of the object.
+					
 						//For your convenience another parser is provided. In this parser more details are stored.
 						//You are free to use your own parser or any of the provided parsers.
 						const objFile = new OBJFile(file_data);
 						const output = objFile.parse();
 						
-						//Todo: You may call a function to calculate new normal for each vertex.
+						
 						
 						filesToRead[index]=false;
 					}else if(fileExtension=='png')
@@ -397,7 +397,7 @@ function renderBillboard(){
 	// Tell it to use our program (pair of shaders)
     gl.useProgram(billboardProgram.program);
 	
-	//Todo: Here you can activate and bind any attribute you need in shader.
+	
     // Turn on the position attribute
     gl.enableVertexAttribArray(billboardProgram.positionLocationAttrib);
 
@@ -443,7 +443,6 @@ function renderBillboard(){
 
     var viewProjectionMatrix = m4.multiply(projectionMatrix, viewMatrix);
 	
-	//Todo: You may need to input light direction as uniform to the shader program. Also here you can input any other uniform variable to shader.
     // Set the viewProjectionMatrix.
 	gl.uniformMatrix4fv(billboardProgram.worldViewProjectionUniformLocation, false, viewProjectionMatrix);
 	
@@ -483,7 +482,7 @@ function renderObj(now){
     // Tell it to use our program (pair of shaders)
     gl.useProgram(objProgram.program);
 	
-	//Todo: Here you can activate and bind any attribute you need in shader.
+	
     // Turn on the position attribute
     gl.enableVertexAttribArray(objProgram.positionLocationAttrib);
 	//turn on normal attribute in place of position
@@ -557,7 +556,6 @@ function renderObj(now){
 	
 	gl.uniformMatrix4fv(objProgram.worldUniformLocation, false, modelMatrix);
 
-	//Todo: You may need to inputs such as light direction and phong as uniforms to the shader program. Also here you can input any other uniform variable to shader.
     // Set the viewProjectionMatrix.
 	gl.uniformMatrix4fv(objProgram.worldViewProjectionUniformLocation, false, worldViewProjectionMatrix);
 	
@@ -673,7 +671,7 @@ function makeObjBuffers(){
 }
 
 function programObj(){
-	//Todo: Change the shader programs to support diffuse and specular (graduates) shading. For gouraud shading you need to calculate new normals when processing the OBJ file.
+	
 	var vShaderObj =
 				"precision mediump float;\n"+
 				"attribute vec4 a_position;\n"+
@@ -777,7 +775,7 @@ function programObj(){
 		const info = gl.getActiveAttrib(programObject, i);
 		console.log("name: ", info.name, "type: ", info.type, "size: ", info.size);
 	}
-	//Todo: Add new varialbes for linking to the shader program.
+	
 	//The attribute variables from the shader program can be obtained as below.
 	// look up where the vertex data needs to go.
     let positionLocationAttrib = gl.getAttribLocation(programObject, "a_position");
@@ -785,7 +783,7 @@ function programObj(){
 	let normalLocationAttrib = gl.getAttribLocation(programObject, "a_normal");
 	
 	
-	//Todo: Add new varialbes for linking to the shader program.
+	
 	//The uniform variables from the shader program can be obtained as below.
 	// lookup uniforms
     let colorUniformLocation = gl.getUniformLocation(programObject, "u_color");
@@ -798,7 +796,7 @@ function programObj(){
 	let shadingModeUniformLocation = gl.getUniformLocation(programObject,"u_shadingMode");
 	let isDepthBufferUniformLocation = gl.getUniformLocation(programObject,"u_isDepthBuffer");
 	
-	//Todo: You can store the variable addresses into a class similar to what is shown below so that in the rendering loop you don't get the variables each time.
+
 	objProgram=new ObjProgram(
 		programObject,
 		positionLocationAttrib,
@@ -847,7 +845,7 @@ class BillboardProgram{
 }
 
 function programBillboard(){
-	//Todo: Change the shader programs to support diffuse and specular (graduates) shading. For gouraud shading you need to calculate new normals when processing the OBJ file.
+	
 	var vShaderObj = "attribute vec4 a_position;\n"+
 				"attribute vec2 a_texcoord;\n"+
 				"varying vec2 v_texcoord;\n"+
@@ -873,19 +871,19 @@ function programBillboard(){
 					"}";
 	let programBill = webglUtils.createProgramFromSources(gl, [vShaderObj,fShaderObj])
 	
-	//Todo: Add new varialbes for linking to the shader program.
+	
 	//The attribute variables from the shader program can be obtained as below.
 	// look up where the vertex data needs to go.
     let positionLocationAttrib = gl.getAttribLocation(programBill, "a_position");
 	let textureLocationAttrib = gl.getAttribLocation(programBill, "a_texcoord");
 	
-	//Todo: Add new varialbes for linking to the shader program.
+	
 	//The uniform variables from the shader program can be obtained as below.
 	// lookup uniforms
     let textureUniformLocation = gl.getUniformLocation(programBill, "u_texture");
 	let worldViewProjectionUniformLocation = gl.getUniformLocation(programBill, "u_worldViewProjection");
 	
-	//Todo: You can store the variable addresses into a class similar to what is shown below so that in the rendering loop you don't get the variables each time.
+	
 	billboardProgram=new BillboardProgram(
 		programBill,
 		positionLocationAttrib,
@@ -1012,7 +1010,7 @@ function setBillboardNormals(gl,billboard) {
 }
 
 //This function is given to you for parsing the OBJ file.
-// TODO: You need to calculate average normals by either changing this function or making a new function to do it.
+
 function parseOBJ(text) {
   // because indices are base 1 let's just fill in the 0th data
   const objPositions = [[0, 0, 0]];
