@@ -590,13 +590,13 @@ function renderObj(now){
 	//1.0 = Gouraud
 	//2.0 = phong
 	let shadingMode = 2.0;
-	console.log("shadingMode: ", shadingMode);
-	console.log("gouraudCheckbox: ", gouraudCheckbox);
-	console.log("gouraudCheckbox: ", gouraudCheckbox.checked);
+	//console.log("shadingMode: ", shadingMode);
+	//console.log("gouraudCheckbox: ", gouraudCheckbox);
+	//console.log("gouraudCheckbox: ", gouraudCheckbox.checked);
 	if (gouraudCheckbox.checked == true){
 		shadingMode = 1.0;
 	}
-	console.log("shadingMode (after): ", shadingMode);
+	//console.log("shadingMode (after): ", shadingMode);
 	gl.uniform1f(objProgram.shadingModeUniformLocation, shadingMode);
 	
 	// Here we can access the uniforms in an inefficient way i.e. instead of getting the uniform addresses and store them in a class, we can get the uniform location
