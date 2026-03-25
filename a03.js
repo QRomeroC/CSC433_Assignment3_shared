@@ -62,6 +62,9 @@ var camTY = document.getElementById('camTYID');//Slider for cam target position
 var camTZ = document.getElementById('camTZID');//Slider for cam target position
 
 var isShowDepth = document.getElementById('isDepthBuffer');//checkbox to show depth buffer
+var gouraudCheckbox = document.getElementById('shadingToggle');//to change shading modes
+//var isGouraudShading = gouraudCheckbox.checked;
+//alert("isGS: ",isGouraudShading);
 
 camX.addEventListener("input", function(evt) {
 	if(doneLoading==true){
@@ -586,7 +589,15 @@ function renderObj(now){
 	//0.0 = diffuse
 	//1.0 = Gouraud
 	//2.0 = phong
-	gl.uniform1f(objProgram.shadingModeUniformLocation, 2.0);
+	let shadingMode = 2.0;
+	console.log("shadingMode: ", shadingMode);
+	console.log("gouraudCheckbox: ", gouraudCheckbox);
+	console.log("gouraudCheckbox: ", gouraudCheckbox.checked);
+	if (gouraudCheckbox.checked == true){
+		shadingMode = 1.0;
+	}
+	console.log("shadingMode (after): ", shadingMode);
+	gl.uniform1f(objProgram.shadingModeUniformLocation, shadingMode);
 	
 	// Here we can access the uniforms in an inefficient way i.e. instead of getting the uniform addresses and store them in a class, we can get the uniform location
 	// and send the data. Since, we are sending 3 float variables (one is treated as a boolean), it doesn't have impact on performance.
@@ -601,8 +612,8 @@ function renderObj(now){
 		// Send phong exp uniform
 		gl.uniform1f(isDBUniformLocation, 0);
 	}
-	console.log(objProgram);
-	console.log(objProgram.lightWorldPositionUniformLocation);
+	//console.log(objProgram);
+	//console.log(objProgram.lightWorldPositionUniformLocation);
 	gl.drawArrays(gl.TRIANGLES, 0, currentScene.obj.numVertices);
 }
 
