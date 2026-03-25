@@ -1,7 +1,7 @@
 Template code for A05
 ------------
 
-Author: Arron Posey [@email.arizona.edu]
+Author: Arron Posey [acposey@arizona.edu]
 		Cesar D. Quihuis-Romero [qromeroc@arizona.edu]
 Date: March, 2026
 
